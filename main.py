@@ -156,6 +156,73 @@ def delete_task():
     except ValueError:
         print("Please enter a valid number.")
 
+def edit_task():
+    tasks = load_tasks()
+
+    if not tasks:
+        print("No tasks found.")
+        return
+
+    view_tasks()
+
+    try:
+        task_number = int(input("Which task number do you want to edit? "))
+        index = task_number - 1
+
+        if index < 0 or index >= len(tasks):
+            print("Invalid task number.")
+            return
+
+        task = tasks[index]
+
+        print("\nLeave empty to keep current value.")
+
+        new_name = input(f"Task name ({task['name']}): ")
+
+        if new_name.strip():
+            task["name"] = new_name
+
+        new_deadline = input(f"Deadline ({task['deadline']}): ")
+
+        if new_deadline.strip():
+            try:
+                deadline_date = datetime.strptime(new_deadline, "%Y-%m-%d")
+
+                if deadline_date.date() >= datetime.today().date():
+                    task["deadline"] = new_deadline
+                else:
+                    print("Past deadline ignored.")
+            except ValueError:
+                print("Invalid date ignored.")
+
+        new_difficulty = input(f"Difficulty ({task['difficulty']}): ")
+
+        if new_difficulty.strip():
+            try:
+                difficulty = int(new_difficulty)
+
+                if 1 <= difficulty <= 5:
+                    task["difficulty"] = difficulty
+            except ValueError:
+                print("Invalid difficulty ignored.")
+
+        new_hours = input(f"Hours ({task['hours']}): ")
+
+        if new_hours.strip():
+            try:
+                hours = float(new_hours)
+
+                if hours > 0:
+                    task["hours"] = hours
+            except ValueError:
+                print("Invalid hours ignored.")
+
+        save_tasks(tasks)
+
+        print("✅ Task updated successfully!")
+
+    except ValueError:
+        print("Please enter a valid number.")
 
 def calculate_priority(task):
     today = datetime.today()
@@ -196,12 +263,31 @@ def show_statistics():
     open_tasks = total_tasks - completed_tasks
     completion_rate = (completed_tasks / total_tasks) * 100
 
+    average_difficulty = sum(task["difficulty"] for task in tasks) / total_tasks
+    total_estimated_hours = sum(task["hours"] for task in tasks)
+
+    open_task_list = [task for task in tasks if not task["completed"]]
+
     print("\n--- Task Statistics ---")
     print(f"Total tasks: {total_tasks}")
     print(f"Completed tasks: {completed_tasks}")
     print(f"Open tasks: {open_tasks}")
     print(f"Completion rate: {completion_rate:.1f}%")
+    print(f"Average difficulty: {average_difficulty:.1f}/5")
+    print(f"Total estimated study hours: {total_estimated_hours:.1f}")
 
+    if open_task_list:
+        highest_priority_task = max(open_task_list, key=calculate_priority)
+        highest_score = calculate_priority(highest_priority_task)
+        highest_level = get_priority_level(highest_score)
+
+        print("\nHighest priority open task:")
+        print(f"- {highest_priority_task['name']}")
+        print(f"  Deadline: {highest_priority_task['deadline']}")
+        print(f"  Priority score: {highest_score}")
+        print(f"  Priority level: {highest_level}")
+
+        
 def show_study_plan():
     tasks = load_tasks()
 
@@ -240,8 +326,9 @@ def menu():
         print("3. Show study plan")
         print("4. Complete task")
         print("5. Delete task")
-        print("6. Show statistics")
-        print("7. Exit")
+        print("6. Edit task")
+        print("7. Show statistics")
+        print("8. Exit")
 
         choice = input("Choose an option: ")
 
@@ -256,8 +343,10 @@ def menu():
         elif choice == "5":
             delete_task()
         elif choice == "6":
-            show_statistics()
+            edit_task()
         elif choice == "7":
+            show_statistics()
+        elif choice == "8":
             print("Goodbye!")
             break
         else:
